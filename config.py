@@ -1,0 +1,11 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
+HTTP_PROXY = os.getenv("HTTP_PROXY", "http://127.0.0.1:7897")
+HTTPS_PROXY = os.getenv("HTTPS_PROXY", "http://127.0.0.1:7897")
+
+WORKER_NAME = "qwen-sam-worker"
+WORKER_PORT = 8002
