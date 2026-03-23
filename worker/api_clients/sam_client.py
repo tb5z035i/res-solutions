@@ -26,17 +26,22 @@ class SAMClient:
         self.predictor = SAM2ImagePredictor(sam2_model)
         self._initialized = True
 
-    def segment(self, image: np.ndarray, point: list[int]) -> np.ndarray:
-        """Generate mask from image and point prompt."""
+    def segment(self, image: np.ndarray, point: list[int] = None, bbox: list[int] = None) -> np.ndarray:
+        """Generate mask from image with point or bbox prompt."""
         self.predictor.set_image(image)
 
-        point_coords = np.array([point])
-        point_labels = np.array([1])
-
-        masks, _, _ = self.predictor.predict(
-            point_coords=point_coords,
-            point_labels=point_labels,
-            multimask_output=False
-        )
+        if bbox is not None:
+            box = np.array(bbox)
+            masks, _, _ = self.predictor.predict(box=box, multimask_output=False)
+        elif point is not None:
+            point_coords = np.array([point])
+            point_labels = np.array([1])
+            masks, _, _ = self.predictor.predict(
+                point_coords=point_coords,
+                point_labels=point_labels,
+                multimask_output=False
+            )
+        else:
+            raise ValueError("Either point or bbox must be provided")
 
         return masks[0]

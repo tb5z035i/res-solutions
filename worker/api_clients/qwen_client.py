@@ -5,7 +5,7 @@ from io import BytesIO
 from PIL import Image
 import numpy as np
 from config import DASHSCOPE_API_KEY
-from worker.api_clients.vlm_utils import parse_coordinates
+from worker.api_clients.vlm_utils import parse_coordinates, parse_bbox
 
 
 class QwenClient:
@@ -14,8 +14,8 @@ class QwenClient:
         self.model = "qwen3.5-plus"
         self.api_key = DASHSCOPE_API_KEY
 
-    async def locate_object(self, image: np.ndarray, text: str, max_retries: int = 3) -> list[int]:
-        """Locate object in image and return center point [x, y]."""
+    async def locate_object(self, image: np.ndarray, text: str, max_retries: int = 3, return_bbox: bool = False) -> list[int]:
+        """Locate object in image and return center point [x, y] or bbox [x1, y1, x2, y2]."""
         img_pil = Image.fromarray(image)
         buffer = BytesIO()
         img_pil.save(buffer, format="JPEG")
@@ -44,6 +44,8 @@ class QwenClient:
                     async with session.post(self.endpoint, json=payload, headers=headers) as resp:
                         result = await resp.json()
                         content = result["choices"][0]["message"]["content"]
+                        if return_bbox:
+                            return parse_bbox(content, image.shape)
                         return parse_coordinates(content, image.shape)
 
             except Exception as e:

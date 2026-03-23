@@ -47,3 +47,30 @@ def parse_coordinates(content: str, image_shape: tuple) -> list[int]:
         return [int(x), int(y)]
 
     raise ValueError(f"Could not parse coordinates from: {content}")
+
+
+def parse_bbox(content: str, image_shape: tuple) -> list[int]:
+    """Parse bbox from VLM response. Returns [x1, y1, x2, y2] in image coordinates."""
+    h, w = image_shape[:2]
+
+    # Try direct array format [[x1, y1, x2, y2]]
+    try:
+        data = json.loads(content)
+        if isinstance(data, list) and len(data) > 0:
+            coords = data[0] if isinstance(data[0], list) else data
+            if len(coords) == 4:
+                return [int(coords[0] * w / 1000), int(coords[1] * h / 1000),
+                        int(coords[2] * w / 1000), int(coords[3] * h / 1000)]
+    except:
+        pass
+
+    # Try JSON format with bbox_2d
+    json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
+    if json_match:
+        data = json.loads(json_match.group(1))
+        if data and isinstance(data[0], dict) and "bbox_2d" in data[0]:
+            bbox = data[0]["bbox_2d"]
+            return [int(bbox[0] * w / 1000), int(bbox[1] * h / 1000),
+                    int(bbox[2] * w / 1000), int(bbox[3] * h / 1000)]
+
+    raise ValueError(f"Could not parse bbox from: {content}")

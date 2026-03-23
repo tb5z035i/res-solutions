@@ -93,16 +93,20 @@ async def process_image(image, text, worker_name):
         task = await task_manager.get_task(task_id)
         if task["status"] == "completed":
             mask = decode_image(task["mask"])
-            point = task["point"]
+            point = task.get("point")
+            bbox = task.get("bbox")
             inference_time = task.get("inference_time", 0)
             timings = task.get("timings", {})
             img_array = decode_image(img_encoded)
 
-            # Draw point on image
+            # Draw point or bbox on image
             from PIL import Image, ImageDraw
             img_pil = Image.fromarray(img_array)
             draw = ImageDraw.Draw(img_pil)
-            if point:
+            if bbox:
+                x1, y1, x2, y2 = bbox
+                draw.rectangle([x1, y1, x2, y2], outline='yellow', width=3)
+            elif point:
                 x, y = point
                 size = 10
                 draw.rectangle([x-size, y-size, x+size, y+size], fill='lightgreen', outline='yellow', width=3)

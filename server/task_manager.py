@@ -20,6 +20,7 @@ class TaskManager:
                 "worker_id": worker_id,
                 "mask": None,
                 "point": None,
+                "bbox": None,
                 "inference_time": None,
                 "timings": None,
                 "error": None
@@ -47,6 +48,7 @@ class TaskManager:
                         async with self.lock:
                             self.tasks[task_id]["mask"] = result.get("mask")
                             self.tasks[task_id]["point"] = result.get("point")
+                            self.tasks[task_id]["bbox"] = result.get("bbox")
                             self.tasks[task_id]["inference_time"] = result.get("inference_time")
                             self.tasks[task_id]["timings"] = result.get("timings")
                             self.tasks[task_id]["status"] = "completed"
