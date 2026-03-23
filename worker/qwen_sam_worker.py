@@ -6,8 +6,8 @@ from server.image_utils import decode_image, encode_image
 
 
 class QwenSamWorker(BaseWorker):
-    def __init__(self, name: str, server_url: str, port: int):
-        super().__init__(name, server_url, port)
+    def __init__(self, name: str, port: int):
+        super().__init__(name, port)
         self.qwen_client = QwenClient()
         self.sam_client = SAMClient()
 
@@ -25,9 +25,9 @@ class QwenSamWorker(BaseWorker):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", default="qwen-sam-worker")
-    parser.add_argument("--server-url", default="http://localhost:8000")
+    parser.add_argument("--server-url", default="http://localhost:7000")
     parser.add_argument("--port", type=int, default=8002)
     args = parser.parse_args()
 
-    worker = QwenSamWorker(args.name, args.server_url, args.port)
-    worker.run()
+    worker = QwenSamWorker(args.name, args.port)
+    worker.start(args.server_url)

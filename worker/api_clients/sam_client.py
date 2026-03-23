@@ -1,9 +1,8 @@
-import os
 import numpy as np
 import torch
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
-from config import HTTP_PROXY, HTTPS_PROXY
+from config import SAM2_MODEL_PATH
 
 
 class SAMClient:
@@ -19,14 +18,11 @@ class SAMClient:
         if self._initialized:
             return
 
-        os.environ["HTTP_PROXY"] = HTTP_PROXY
-        os.environ["HTTPS_PROXY"] = HTTPS_PROXY
-
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        sam2_checkpoint = "facebook/sam2-hiera-large"
-        model_cfg = "sam2_hiera_l.yaml"
 
-        sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=device)
+        checkpoint_file = f"{SAM2_MODEL_PATH}/sam2_hiera_large.pt"
+
+        sam2_model = build_sam2("sam2_hiera_l.yaml", checkpoint_file, device=device)
         self.predictor = SAM2ImagePredictor(sam2_model)
         self._initialized = True
 
