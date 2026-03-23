@@ -19,7 +19,9 @@ class TaskManager:
                 "text": text,
                 "worker_id": worker_id,
                 "mask": None,
-                "blended": None,
+                "point": None,
+                "inference_time": None,
+                "timings": None,
                 "error": None
             }
         return task_id
@@ -43,7 +45,10 @@ class TaskManager:
                     if resp.status == 200:
                         result = await resp.json()
                         async with self.lock:
-                            self.tasks[task_id]["mask"] = result["mask"]
+                            self.tasks[task_id]["mask"] = result.get("mask")
+                            self.tasks[task_id]["point"] = result.get("point")
+                            self.tasks[task_id]["inference_time"] = result.get("inference_time")
+                            self.tasks[task_id]["timings"] = result.get("timings")
                             self.tasks[task_id]["status"] = "completed"
                     else:
                         async with self.lock:

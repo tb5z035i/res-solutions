@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import gradio as gr
+import numpy as np
 from server.worker_registry import WorkerRegistry
 from server.task_manager import TaskManager
 from server.image_utils import encode_image, decode_image, blend_mask
@@ -75,12 +76,12 @@ async def get_task(task_id: str):
 
 async def process_image(image, text, worker_name):
     if image is None or not text or not worker_name:
-        return None
+        return None, None, None
 
     workers = await registry.list_workers()
     worker = next((w for w in workers if w["name"] == worker_name), None)
     if not worker:
-        return None
+        return None, None, None
 
     img_encoded = encode_image(image)
     task_id = await task_manager.create_task(img_encoded, text, worker["id"])
@@ -92,12 +93,32 @@ async def process_image(image, text, worker_name):
         task = await task_manager.get_task(task_id)
         if task["status"] == "completed":
             mask = decode_image(task["mask"])
+            point = task["point"]
+            inference_time = task.get("inference_time", 0)
+            timings = task.get("timings", {})
             img_array = decode_image(img_encoded)
-            blended = blend_mask(img_array, mask)
-            return blended
+
+            # Draw point on image
+            from PIL import Image, ImageDraw
+            img_pil = Image.fromarray(img_array)
+            draw = ImageDraw.Draw(img_pil)
+            if point:
+                x, y = point
+                size = 10
+                draw.rectangle([x-size, y-size, x+size, y+size], fill='lightgreen', outline='yellow', width=3)
+
+            # Blend mask
+            blended = blend_mask(np.array(img_pil), mask)
+            time_text = f"Total: {inference_time:.2f}s"
+
+            # Format step timings
+            import json
+            timings_text = json.dumps(timings, indent=2)
+
+            return blended, time_text, timings_text
         elif task["status"] == "failed":
-            return None
-    return None
+            return None, "Processing failed", ""
+    return None, "Timeout", ""
 
 def get_worker_names():
     import asyncio
@@ -116,6 +137,8 @@ with gr.Blocks() as demo:
             submit_btn = gr.Button("Process", variant="primary")
         with gr.Column():
             result_output = gr.Image(label="Result")
+            time_output = gr.Textbox(label="Inference Time", interactive=False)
+            timings_output = gr.Textbox(label="Step Timings", interactive=False, lines=6)
 
     def refresh_workers():
         workers = asyncio.run(registry.list_workers())
@@ -129,7 +152,7 @@ with gr.Blocks() as demo:
     timer = gr.Timer(1)
     timer.tick(refresh_workers, None, worker_dropdown)
 
-    submit_btn.click(process_image, [image_input, text_input, worker_dropdown], result_output)
+    submit_btn.click(process_image, [image_input, text_input, worker_dropdown], [result_output, time_output, timings_output])
 
 app = gr.mount_gradio_app(app, demo, path="/ui")
 

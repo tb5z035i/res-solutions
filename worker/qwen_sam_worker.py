@@ -1,4 +1,5 @@
 import argparse
+import time
 from worker.base_worker import BaseWorker
 from worker.api_clients.qwen_client import QwenClient
 from worker.api_clients.sam_client import SAMClient
@@ -11,15 +12,30 @@ class QwenSamWorker(BaseWorker):
         self.qwen_client = QwenClient()
         self.sam_client = SAMClient()
 
-    async def segment(self, image: str, text: str) -> str:
+    async def segment(self, image: str, text: str) -> dict:
         """Segment image using Qwen3-VL-Plus + SAM3."""
+        start_time = time.time()
+        timings = {}
+
+        step_start = time.time()
         img_array = decode_image(image)
+        timings["decode_image"] = time.time() - step_start
 
+        step_start = time.time()
         point = await self.qwen_client.locate_object(img_array, text)
+        timings["qwen_locate"] = time.time() - step_start
 
+        step_start = time.time()
         mask = self.sam_client.segment(img_array, point)
+        timings["sam_segment"] = time.time() - step_start
 
-        return encode_image(mask)
+        step_start = time.time()
+        mask_encoded = encode_image(mask)
+        timings["encode_mask"] = time.time() - step_start
+
+        inference_time = time.time() - start_time
+
+        return {"mask": mask_encoded, "point": point, "inference_time": inference_time, "timings": timings}
 
 
 if __name__ == "__main__":
