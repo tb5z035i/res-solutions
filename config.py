@@ -10,3 +10,6 @@ HTTPS_PROXY = os.getenv("HTTPS_PROXY", "http://127.0.0.1:7897")
 WORKER_NAME = "qwen-sam-worker"
 WORKER_PORT = 8002
 SAM2_MODEL_PATH = os.getenv("SAM2_MODEL_PATH", "/home/tb5z035i/workspace/checkpoints/facebook/sam2-hiera-large")
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3-vl:32b-instruct-bf16")

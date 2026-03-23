@@ -140,17 +140,19 @@ with gr.Blocks() as demo:
             time_output = gr.Textbox(label="Inference Time", interactive=False)
             timings_output = gr.Textbox(label="Step Timings", interactive=False, lines=6)
 
-    def refresh_workers():
+    def refresh_workers(current_value):
         workers = asyncio.run(registry.list_workers())
         names = [w["name"] for w in workers]
-        return gr.Dropdown(choices=names, value=names[0] if names else None)
+        # Preserve current selection if still valid, otherwise use first
+        value = current_value if current_value in names else (names[0] if names else None)
+        return gr.Dropdown(choices=names, value=value)
 
     # Manual refresh button
-    refresh_btn.click(refresh_workers, None, worker_dropdown)
+    refresh_btn.click(refresh_workers, worker_dropdown, worker_dropdown)
 
     # Auto-poll every 1 second
     timer = gr.Timer(1)
-    timer.tick(refresh_workers, None, worker_dropdown)
+    timer.tick(refresh_workers, worker_dropdown, worker_dropdown)
 
     submit_btn.click(process_image, [image_input, text_input, worker_dropdown], [result_output, time_output, timings_output])
 

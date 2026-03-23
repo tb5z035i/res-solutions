@@ -4,15 +4,14 @@ import base64
 from io import BytesIO
 from PIL import Image
 import numpy as np
-from config import DASHSCOPE_API_KEY
+from config import OLLAMA_BASE_URL, OLLAMA_MODEL
 from worker.api_clients.vlm_utils import parse_coordinates
 
 
-class QwenClient:
+class OllamaClient:
     def __init__(self):
-        self.endpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-        self.model = "qwen3.5-plus"
-        self.api_key = DASHSCOPE_API_KEY
+        self.endpoint = f"{OLLAMA_BASE_URL}/api/chat"
+        self.model = OLLAMA_MODEL
 
     async def locate_object(self, image: np.ndarray, text: str, max_retries: int = 3) -> list[int]:
         """Locate object in image and return center point [x, y]."""
@@ -20,12 +19,6 @@ class QwenClient:
         buffer = BytesIO()
         img_pil.save(buffer, format="JPEG")
         img_b64 = base64.b64encode(buffer.getvalue()).decode()
-        data_url = f"data:image/jpeg;base64,{img_b64}"
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
 
         for attempt in range(max_retries):
             try:
@@ -33,17 +26,16 @@ class QwenClient:
                     "model": self.model,
                     "messages": [{
                         "role": "user",
-                        "content": [
-                            {"type": "image_url", "image_url": {"url": data_url}},
-                            {"type": "text", "text": f"Find the {text} in this image. Return ONLY a JSON array with the bounding box in this exact format:\n```json\n[{{\n  \"bbox_2d\": [x1, y1, x2, y2],\n  \"label\": \"{text}\"\n}}]\n```\nUse 1000x1000 coordinate system where (0,0) is top-left."}
-                        ]
-                    }]
+                        "content": f"Find the {text} in this image. Return ONLY a JSON array with the bounding box in this exact format:\n```json\n[{{\n  \"bbox_2d\": [x1, y1, x2, y2],\n  \"label\": \"{text}\"\n}}]\n```\nUse 1000x1000 coordinate system where (0,0) is top-left.",
+                        "images": [img_b64]
+                    }],
+                    "stream": False
                 }
 
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(self.endpoint, json=payload, headers=headers) as resp:
+                    async with session.post(self.endpoint, json=payload) as resp:
                         result = await resp.json()
-                        content = result["choices"][0]["message"]["content"]
+                        content = result["message"]["content"]
                         return parse_coordinates(content, image.shape)
 
             except Exception as e:
