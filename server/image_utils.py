@@ -26,7 +26,7 @@ def blend_mask(image: np.ndarray, mask: np.ndarray, alpha: float = 0.5, color: t
     if len(mask.shape) == 3:
         mask = mask[:, :, 0]
 
-    mask_norm = mask.astype(float) / 255.0
+    mask_norm = mask.astype(float) / max(mask.max(), 1.0)
     overlay = np.zeros_like(image)
     overlay[:, :] = color
 

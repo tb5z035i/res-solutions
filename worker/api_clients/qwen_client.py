@@ -28,7 +28,7 @@ class QwenClient:
                 "role": "user",
                 "content": [
                     {"type": "image_url", "image_url": {"url": data_url}},
-                    {"type": "text", "text": f"{text}. Return the center point coordinates of the object in format (x, y)."}
+                    {"type": "text", "text": f"Locate the {text} in this image. Return ONLY the normalized coordinates as a decimal between 0 and 1 in format (x, y) where (0,0) is top-left and (1,1) is bottom-right."}
                 ]
             }]
         }
@@ -43,11 +43,26 @@ class QwenClient:
                 result = await resp.json()
                 content = result["choices"][0]["message"]["content"]
 
-                # Parse coordinates from response
+                # Try JSON format first
+                json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
+                if json_match:
+                    data = json.loads(json_match.group(1))
+                    if data:
+                        if "point_2d" in data[0]:
+                            point = data[0]["point_2d"]
+                            h, w = image.shape[:2]
+                            return [int(point[0] * w / 1000), int(point[1] * h / 1000)]
+                        elif "bbox_2d" in data[0]:
+                            bbox = data[0]["bbox_2d"]
+                            x_center = (bbox[0] + bbox[2]) / 2
+                            y_center = (bbox[1] + bbox[3]) / 2
+                            h, w = image.shape[:2]
+                            return [int(x_center * w / 1000), int(y_center * h / 1000)]
+
+                # Try (x, y) format
                 match = re.search(r'\((\d+\.?\d*),\s*(\d+\.?\d*)\)', content)
                 if match:
                     x, y = float(match.group(1)), float(match.group(2))
-                    # Convert normalized to pixel if needed
                     if x <= 1.0 and y <= 1.0:
                         h, w = image.shape[:2]
                         x, y = int(x * w), int(y * h)
