@@ -19,6 +19,9 @@ pip install -e ".[sam]"
 # Qwen API worker
 pip install -e ".[sam,qwen]"
 
+# Grounded SAM worker
+pip install -e ".[grounded-sam]"
+
 # All workers
 pip install -e ".[all]"
 
@@ -42,6 +45,8 @@ python -m worker.qwen_sam_worker --name qwen-sam-worker --port 8002
 python -m worker.ollama_sam_worker --name ollama-sam-worker --port 8003
 # OR
 python -m worker.qwen_sam_bbox_worker --name qwen-sam-bbox-worker --port 8004
+# OR
+python -m worker.grounded_sam_worker --name grounded-sam-worker --port 8005
 
 # Access UI at http://localhost:7000/ui
 ```
@@ -58,6 +63,7 @@ python -m worker.qwen_sam_bbox_worker --name qwen-sam-bbox-worker --port 8004
 - **qwen-sam-worker**: Qwen3.5-Plus API + SAM2 with point prompts (requires `sam,qwen`)
 - **qwen-sam-bbox-worker**: Qwen3.5-Plus API + SAM2 with bbox prompts (requires `sam,qwen`)
 - **ollama-sam-worker**: Local Ollama Qwen3-VL + SAM2 (requires `sam`)
+- **grounded-sam-worker**: Grounding DINO + SAM2 end-to-end RES pipeline (requires `grounded-sam`)
 
 ## API Endpoints
 
